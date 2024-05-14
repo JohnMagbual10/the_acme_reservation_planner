@@ -19,3 +19,21 @@ app.get('/api/customers', async (req, res, next) => {
     next(error);
   }
 });
+
+app.get('/api/restaurants', async (req, res, next) => {
+  try {
+    const restaurants = await fetchRestaurants();
+    res.send(restaurants);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/reservations', async (req, res, next) => {
+  try {
+    const reservations = await fetchReservations();
+    res.send(reservations);
+  } catch (error) {
+    next(error);
+  }
+});
