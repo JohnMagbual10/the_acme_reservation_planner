@@ -58,3 +58,10 @@ app.delete('/api/customers/:customer_id/reservations/:id', async (req, res, next
     next(error);
   }
 });
+
+app.use((err, req, res, next) => {
+  res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+});
+
+module.exports = app;
+
