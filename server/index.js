@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 const {
+  connect,
+  init,
   fetchCustomers,
   fetchRestaurants,
   fetchReservations,
@@ -8,7 +10,7 @@ const {
   destroyReservation
 } = require('./db');
 
-//middleware setup
+// Middleware setup
 app.use(express.json());
 
 app.get('/api/customers', async (req, res, next) => {
@@ -63,5 +65,21 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
 });
 
-module.exports = app;
+// Start the server and initialize the database
+const startServer = async () => {
+  try {
+    await connect();
+    await init();
+    
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+      console.log(`Server is listening on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Error starting server:', error);
+  }
+};
 
+startServer();
+
+module.exports = app;

@@ -2,9 +2,7 @@ const { Client } = require('pg');
 
 // Create a new instance of the PostgreSQL client
 const client = new Client({
-  // Add your PostgreSQL connection configuration here
-  // For example:
-  // connectionString: 'postgresql://username:password@localhost:5432/database_name'
+  connectionString: 'postgresql://username:password@localhost:5432/database_name' // Adjust as needed
 });
 
 // Connect to the PostgreSQL database
@@ -17,125 +15,63 @@ const connect = async () => {
   }
 };
 
-// Method to drop and create the tables for your application
-const createTables = async () => {
+// Method to drop and create the tables for your application and seed data
+const init = async () => {
   try {
-    // Define your SQL statements to drop and create tables
-    const dropTablesQuery = `
-      DROP TABLE IF EXISTS customers;
-      DROP TABLE IF EXISTS restaurants;
-      DROP TABLE IF EXISTS reservations;
-    `;
-    const createTablesQuery = `
-      CREATE TABLE customers (
+    const SQL = `
+      DROP TABLE IF EXISTS employees;
+      CREATE TABLE IF NOT EXISTS employees (
         id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL
+        name VARCHAR(50),
+        is_admin BOOLEAN
       );
-      CREATE TABLE restaurants (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL
-      );
-      CREATE TABLE reservations (
-        id SERIAL PRIMARY KEY,
-        customer_id INTEGER REFERENCES customers(id),
-        restaurant_id INTEGER REFERENCES restaurants(id),
-        reservation_date DATE NOT NULL
-      );
+      INSERT INTO employees (name, is_admin) VALUES
+      ('John Doe', true),
+      ('Jane Smith', false);
     `;
 
-    // Execute the SQL statements
-    await client.query(dropTablesQuery);
-    await client.query(createTablesQuery);
-
-    console.log('Tables created successfully');
+    await client.query(SQL);
+    console.log('Data seeded');
   } catch (error) {
-    console.error('Error creating tables:', error);
+    console.error('Error initializing database:', error);
   }
 };
 
-// Method to create a customer in the database and return the created record
-const createCustomer = async (name) => {
-  try {
-    const query = 'INSERT INTO customers (name) VALUES ($1) RETURNING *';
-    const values = [name];
-
-    const result = await client.query(query, values);
-    return result.rows[0];
-  } catch (error) {
-    console.error('Error creating customer:', error);
-  }
-};
-
-// Method to create a restaurant in the database and return the created record
-const createRestaurant = async (name) => {
-  try {
-    const query = 'INSERT INTO restaurants (name) VALUES ($1) RETURNING *';
-    const values = [name];
-
-    const result = await client.query(query, values);
-    return result.rows[0];
-  } catch (error) {
-    console.error('Error creating restaurant:', error);
-  }
-};
-
-// Method to fetch all customers from the database
+// Fetch methods and other database-related functions here
 const fetchCustomers = async () => {
-  try {
-    const query = 'SELECT * FROM customers';
-    const result = await client.query(query);
-    return result.rows;
-  } catch (error) {
-    console.error('Error fetching customers:', error);
-  }
+  const result = await client.query('SELECT * FROM customers');
+  return result.rows;
 };
 
-// Method to fetch all restaurants from the database
 const fetchRestaurants = async () => {
-  try {
-    const query = 'SELECT * FROM restaurants';
-    const result = await client.query(query);
-    return result.rows;
-  } catch (error) {
-    console.error('Error fetching restaurants:', error);
-  }
+  const result = await client.query('SELECT * FROM restaurants');
+  return result.rows;
 };
 
-// Method to create a reservation in the database and return the created record
-const createReservation = async (customerId, restaurantId, reservationDate) => {
-  try {
-    const query = 'INSERT INTO reservations (customer_id, restaurant_id, reservation_date) VALUES ($1, $2, $3) RETURNING *';
-    const values = [customerId, restaurantId, reservationDate];
-
-    const result = await client.query(query, values);
-    return result.rows[0];
-  } catch (error) {
-    console.error('Error creating reservation:', error);
-  }
+const fetchReservations = async () => {
+  const result = await client.query('SELECT * FROM reservations');
+  return result.rows;
 };
 
-// Method to delete a reservation from the database
-const destroyReservation = async (reservationId) => {
-  try {
-    const query = 'DELETE FROM reservations WHERE id = $1';
-    const values = [reservationId];
-
-    await client.query(query, values);
-    console.log('Reservation deleted successfully');
-  } catch (error) {
-    console.error('Error deleting reservation:', error);
-  }
+const createReservation = async (customerId, restaurantId, date, partyCount) => {
+  const result = await client.query(
+    'INSERT INTO reservations (customer_id, restaurant_id, date, party_count) VALUES ($1, $2, $3, $4) RETURNING *',
+    [customerId, restaurantId, date, partyCount]
+  );
+  return result.rows[0];
 };
 
-// Export all the methods
+const destroyReservation = async (customerId, reservationId) => {
+  await client.query('DELETE FROM reservations WHERE id = $1 AND customer_id = $2', [reservationId, customerId]);
+};
+
 module.exports = {
   client,
   connect,
-  createTables,
-  createCustomer,
-  createRestaurant,
+  init,
   fetchCustomers,
   fetchRestaurants,
+  fetchReservations,
   createReservation,
   destroyReservation
 };
