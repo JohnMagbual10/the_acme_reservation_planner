@@ -1,4 +1,5 @@
 const { Client } = require('pg');
+const { v4: uuidv4 } = require('uuid');
 
 // Create a new instance of the PostgreSQL client
 const client = new Client({
@@ -19,19 +20,39 @@ const connect = async () => {
 const init = async () => {
   try {
     const SQL = `
-      DROP TABLE IF EXISTS employees;
-      CREATE TABLE IF NOT EXISTS employees (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(50),
-        is_admin BOOLEAN
+      DROP TABLE IF EXISTS reservations;
+      DROP TABLE IF EXISTS customers;
+      DROP TABLE IF EXISTS restaurants;
+
+      CREATE TABLE IF NOT EXISTS customers (
+        id UUID PRIMARY KEY,
+        name VARCHAR(255) NOT NULL
       );
-      INSERT INTO employees (name, is_admin) VALUES
-      ('John Doe', true),
-      ('Jane Smith', false);
+
+      CREATE TABLE IF NOT EXISTS restaurants (
+        id UUID PRIMARY KEY,
+        name VARCHAR(255) NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS reservations (
+        id UUID PRIMARY KEY,
+        date DATE NOT NULL,
+        party_count INTEGER NOT NULL,
+        restaurant_id UUID REFERENCES restaurants(id) NOT NULL,
+        customer_id UUID REFERENCES customers(id) NOT NULL
+      );
+
+      INSERT INTO customers (id, name) VALUES
+      ('${uuidv4()}', 'John Magbual'),
+      ('${uuidv4()}', 'Xiaojia Qin');
+      
+      INSERT INTO restaurants (id, name) VALUES
+      ('${uuidv4()}', 'The Great Restaurant'),
+      ('${uuidv4()}', 'Good Eats');
     `;
 
     await client.query(SQL);
-    console.log('Data seeded');
+    console.log('Tables created and data seeded successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
   }
@@ -55,14 +76,14 @@ const fetchReservations = async () => {
 
 const createReservation = async (customerId, restaurantId, date, partyCount) => {
   const result = await client.query(
-    'INSERT INTO reservations (customer_id, restaurant_id, date, party_count) VALUES ($1, $2, $3, $4) RETURNING *',
-    [customerId, restaurantId, date, partyCount]
+    'INSERT INTO reservations (id, customer_id, restaurant_id, date, party_count) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+    [uuidv4(), customerId, restaurantId, date, partyCount]
   );
   return result.rows[0];
 };
 
-const destroyReservation = async (customerId, reservationId) => {
-  await client.query('DELETE FROM reservations WHERE id = $1 AND customer_id = $2', [reservationId, customerId]);
+const destroyReservation = async (reservationId) => {
+  await client.query('DELETE FROM reservations WHERE id = $1', [reservationId]);
 };
 
 module.exports = {
